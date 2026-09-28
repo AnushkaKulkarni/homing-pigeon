@@ -21,21 +21,24 @@ The name is inspired by homing pigeons, domestic pigeons who are used to send ma
 
 The palette is the seven-color set that USPS and the Pantone Color Institute created for the Postal Service's 250th anniversary:
 
-| Color | Hex | Used for |
-| --- | --- | --- |
-| USPS Blue | `#1C4883` | Page background |
-| USPS Parchment White | `#FFFDEE` | Address and message cards |
-| USPS Airmail Red | `#DB3B39` | Primary buttons |
-| USPS Carrier Red | `#6E131A` | Button hover, warnings, links on cards |
-| USPS Mr. ZIP Orange | `#E16E39` | "Things to check" marker |
-| USPS Gold Seal | `#C58C2F` | "Looks complete" marker |
-| USPS Pony Express | `#5F443D` | "Looks complete" text |
+| Color | Hex |
+| --- | --- |
+| USPS Blue | `#1C4883` | 
+| USPS Parchment White | `#FFFDEE` | 
+| USPS Airmail Red | `#DB3B39` | 
+| USPS Carrier Red | `#6E131A` |
+| USPS Mr. ZIP Orange | `#E16E39` |
+| USPS Gold Seal | `#C58C2F` |
+| USPS Pony Express | `#5F443D` | 
 
-Sources: [USPS Link, "These colors paint the history of USPS"](https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/) and [Pantone x USPS](https://www.pantone.com/usps250). The hex values were sampled from the swatches on the Pantone page, so treat them as close matches rather than official specifications. A few shades of USPS Blue (panels, inputs, borders) are derived from it and are defined separately in the CSS.
+Sources: 
+- [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress).
+- [USPS Link, "These colors paint the history of USPS"](https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/) and [Pantone x USPS](https://www.pantone.com/usps250). The hex values were sampled from the swatches on the Pantone page.
+- Built with help from Claude Code (Anthropic).
 
-USPS's article says these colors were created for marketing purposes to mark the anniversary. This is an independent project and isn't affiliated with or endorsed by USPS or Pantone.
+Caveats: 
+- USPS's article says these colors were created for marketing purposes to mark the anniversary. This is an independent project and isn't affiliated with or endorsed by USPS or Pantone.
+- This tool formats addresses; it does not validate that they're real, deliverable, or CASS-certified — USPS's own [ZIP Code Lookup](https://tools.usps.com/zip-code-lookup.htm) is the source of truth for that.
 
-This tool formats addresses; it does not validate that they're real, deliverable, or CASS-certified — USPS's own [ZIP Code Lookup](https://tools.usps.com/zip-code-lookup.htm) is the source of truth for that.
 
-Built with help from Claude Code (Anthropic).
 
