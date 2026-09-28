@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Homing Pigeon— Mailing Address Formatter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E🐦%3C/text%3E%3C/svg%3E">
+<meta name="description" content="Paste a mailing address and format it to USPS standards. Runs entirely in your browser — nothing is sent anywhere.">
+<style>
+  :root{
+    /* Palette: USPS x Pantone 250th-anniversary colors.
+       Source: https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/
+       and https://www.pantone.com/usps250
+       Hex values sampled from the swatches on the Pantone page. */
+    --usps-parchment-white:#FFFDEE;
+    --usps-pony-express:#5F443D;
+    --usps-airmail-red:#DB3B39;
+    --usps-mr-zip-orange:#E16E39;
+    --usps-carrier-red:#6E131A;
+    --usps-gold-seal:#C58C2F;
+    --usps-blue:#1C4883;
+
+    /* Derived tints/shades of USPS Blue, for panels, inputs and lines */
+    --ink-deep:#122F55;
+    --ink-soft:#163A69;
+    --line-blue:#4E76AD;
+
+    --ink:var(--usps-blue);
+    --paper:var(--usps-parchment-white);
+    --paper-line:#DCD4C7;
+    --paper-shadow:#0F2747;
+    --stamp:var(--usps-airmail-red);
+    --stamp-dark:var(--usps-carrier-red);
+    --ok:var(--usps-gold-seal);
+    --warn:var(--usps-mr-zip-orange);
+    --pony:var(--usps-pony-express);
+    --text-ink:#211C12;
+    --text-paper:#FFFDEE;
+    --text-dim:#D3DDEE;
+    --muted:#B9C8E2;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{scroll-padding-top: env(safe-area-inset-top,0px);}
+  body{
+    background:var(--ink);
+    color:var(--text-paper);
+    font-family:var(--sans);
+    min-height:100%;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+    line-height:1.5;
+  }
+  a{color:inherit;}
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:40px 20px 80px;
+  }
+
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:8px;
+    border-bottom:1px solid var(--ink-soft);
+    padding-bottom:18px;
+  }
+  header h1{
+    font-size:22px;
+    letter-spacing:0.01em;
+    margin:0;
+    font-weight:700;
+  }
+  header h1 .logo-bird{margin-left:8px;font-weight:400;}
+  header .tag{
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
+  }
+
+  .intro{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--text-dim);
+    margin:20px 0 0;
+    max-width:56ch;
+  }
+
+  .privacy-note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--ink-soft);
+    border:1px dashed var(--line-blue);
+    border-radius:3px;
+    padding:12px 14px;
+    margin:20px 0 32px;
+    font-size:13px;
+    color:var(--text-dim);
+  }
+  .privacy-note svg{flex:none;margin-top:2px;}
+  .privacy-note strong{color:var(--text-paper);}
+  .privacy-icon{
+    flex:none;
+    font-size:16px;
+    line-height:1;
+    margin-top:1px;
+  }
+
+  section{margin-bottom:36px;}
+  section h2{
+    font-size:13px;
+    text-transform:none;
+    letter-spacing:0.02em;
+    color:var(--text-dim);
+    margin:0 0 10px;
+    font-weight:600;
+  }
+
+  textarea{
+    width:100%;
+    min-height:120px;
+    background:var(--paper);
+    color:var(--text-ink);
+    border:1px solid var(--paper-line);
+    border-radius:2px;
+    padding:14px 16px;
+    font-family:var(--mono);
+    font-size:14px;
+    line-height:1.6;
+    resize:vertical;
+  }
+  textarea:focus, input:focus, button:focus, a:focus{
+    outline:2px solid var(--text-paper);
+    outline-offset:2px;
+  }
+  textarea::placeholder{color:#8a8470;}
+
+  .btnrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    border-radius:2px;
+    padding:10px 18px;
+    border:1px solid transparent;
+    transition:transform .06s ease;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-primary{
+    background:var(--stamp);
+    color:var(--text-paper);
+    border-color:var(--stamp-dark);
+  }
+  .btn-primary:hover{background:var(--stamp-dark);}
+  .btn-secondary{
+    background:transparent;
+    color:var(--text-paper);
+    border-color:var(--line-blue);
+  }
+  .btn-secondary:hover{border-color:var(--text-paper);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--text-dim);
+    border:none;
+    padding:6px 4px;
+    font-size:13px;
+    text-decoration:underline;
+  }
+
+  .fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    background:var(--ink-soft);
+    border:1px solid var(--line-blue);
+    border-radius:3px;
+    padding:16px;
+  }
+  .fields .full{grid-column:1 / -1;}
+  .field label{
+    display:block;
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .field input{
+    width:100%;
+    background:var(--ink-deep);
+    border:1px solid var(--line-blue);
+    color:var(--text-paper);
+    font-family:var(--mono);
+    font-size:14px;
+    padding:8px 10px;
+    border-radius:2px;
+  }
+  .field input:focus{outline:2px solid var(--text-paper);outline-offset:0;}
+  .three{grid-template-columns:2fr 1fr 1.3fr;}
+  .fields.three .field{grid-column:span 1;}
+
+  .card{
+    background:var(--paper);
+    color:var(--text-ink);
+    border-radius:2px;
+    padding:22px 24px;
+    box-shadow:6px 6px 0 var(--paper-shadow);
+    border:1px solid var(--paper-line);
+  }
+  .card .addr-block{
+    font-family:var(--mono);
+    font-size:16px;
+    line-height:1.7;
+    white-space:pre-wrap;
+    letter-spacing:0.01em;
+  }
+  .card-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+  }
+  .status.ok{color:var(--pony);}
+  .status.warn{color:var(--stamp-dark);}
+  .status .mark{
+    width:18px;height:18px;
+    border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:12px;
+    color:var(--text-ink);
+    flex:none;
+  }
+  .status.ok .mark{background:var(--ok);}
+  .status.warn .mark{background:var(--warn);}
+
+  .issues{
+    margin:14px 0 0;
+    padding:0;
+    list-style:none;
+    font-size:13px;
+    color:var(--stamp-dark);
+  }
+  .issues li{
+    padding:4px 0 4px 18px;
+    position:relative;
+  }
+  .issues li::before{
+    content:"—";
+    position:absolute;left:0;
+  }
+
+  .copybtn{
+    background:var(--ink);
+    color:var(--text-paper);
+    border:1px solid var(--ink);
+    padding:7px 14px;
+    font-size:13px;
+  }
+  .copybtn:hover{background:var(--ink-soft);}
+  .copybtn.copied{background:var(--ok);border-color:var(--ok);color:var(--text-ink);}
+  .card :focus{outline-color:var(--stamp-dark);}
+
+  .card-actions{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .verifylink{
+    font-size:13px;
+    color:var(--stamp-dark);
+    text-decoration:underline;
+    white-space:nowrap;
+  }
+  .verifylink:hover{color:var(--stamp);}
+
+  .draft{
+    background:var(--paper);
+    color:var(--text-ink);
+    border-radius:2px;
+    border:1px dashed var(--paper-line);
+    padding:20px 22px;
+  }
+  .draft textarea{
+    background:transparent;
+    border:none;
+    padding:0;
+    font-family:var(--sans);
+    font-size:14.5px;
+    min-height:140px;
+  }
+  .draft textarea:focus{outline:none;}
+
+  .hidden{display:none !important;}
+
+  footer{
+    margin-top:56px;
+    padding-top:20px;
+    border-top:1px solid var(--ink-soft);
+    font-size:12px;
+    color:var(--muted);
+  }
+  footer a{color:var(--text-paper);}
+
+  @media (max-width:520px){
+    .fields{grid-template-columns:1fr;}
+    .fields.three{grid-template-columns:1fr;}
+    .card{padding:18px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Homing<span class="logo-bird" aria-hidden="true">🐦</span></h1>
+    <div class="tag">Mailing Address Formatter</div>
+  </header>
+
+  <p class="intro">Homing pigeons always find their way to the right address. This tool turns any misshapen address into something USPS can process.</p>
+
+  <div class="privacy-note">
+    <span class="privacy-icon" aria-hidden="true">💌</span>
+    <div><strong>Nothing you paste here leaves your browser.</strong> No server, no network request, no analytics, no storage.</div>
+  </div>
+
+  <section>
+    <h2>Paste your misshapen address</h2>
+    <textarea id="rawInput" placeholder=""></textarea>
+    <div class="btnrow">
+      <button class="btn-primary" id="parseBtn">Read address</button>
+      <button class="btn-secondary" id="clearBtn">Clear</button>
+    </div>
+  </section>
+
+  <section id="fieldsSection" class="hidden">
+    <h2>Here's what I gleaned. Please edit anything that seems incorrect.</h2>
+    <div class="fields">
+      <div class="field full">
+        <label for="fName">Recipient name (optional)</label>
+        <input id="fName" type="text">
+      </div>
+      <div class="field full">
+        <label for="fCompany">Company (optional)</label>
+        <input id="fCompany" type="text">
+      </div>
+      <div class="field full">
+        <label for="fStreet">Street address</label>
+        <input id="fStreet" type="text">
+      </div>
+      <div class="field full">
+        <label for="fUnit">Apt / suite / unit (optional)</label>
+        <input id="fUnit" type="text">
+      </div>
+      <div class="field">
+        <label for="fCity">City</label>
+        <input id="fCity" type="text">
+      </div>
+      <div class="field">
+        <label for="fState">State</label>
+        <input id="fState" type="text">
+      </div>
+      <div class="field">
+        <label for="fZip">ZIP</label>
+        <input id="fZip" type="text">
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn-primary" id="formatBtn">Format address</button>
+    </div>
+  </section>
+
+  <section id="resultSection" class="hidden">
+    <h2>Here's your USPS-formatted address</h2>
+    <div class="card">
+      <div class="addr-block" id="addrOutput"></div>
+      <div class="card-foot">
+        <div class="status" id="statusLine"></div>
+        <div class="card-actions">
+          <a class="verifylink" id="verifyUspsLink" href="https://tools.usps.com/zip-code-lookup.htm?byaddress" target="_blank" rel="noopener">Verify on USPS.com</a>
+          <button class="copybtn" id="copyAddrBtn">Copy</button>
+        </div>
+      </div>
+      <ul class="issues hidden" id="issuesList"></ul>
+    </div>
+  </section>
+
+  <section id="draftSection" class="hidden">
+    <h2 id="draftHeading">Follow up with your friend</h2>
+    <div class="draft">
+      <textarea id="draftText"></textarea>
+      <div class="btnrow">
+        <button class="copybtn" id="copyDraftBtn">Copy message</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Formatting follows the USPS Postal Explorer <a href="https://pe.usps.com/businessmail101?ViewName=DeliveryAddress" target="_blank" rel="noopener">delivery address guidelines</a> (all caps, no punctuation, standard abbreviations from Publication 28). This is a formatting aid, not address validation.
+    <br><br>
+    Colors come from the USPS 250th-anniversary palette created with Pantone: USPS Blue, Airmail Red, Carrier Red, Mr. ZIP Orange, Gold Seal, Pony Express and Parchment White. See <a href="https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/" target="_blank" rel="noopener">USPS Link</a> and <a href="https://www.pantone.com/usps250" target="_blank" rel="noopener">Pantone</a>. This is an independent project, not affiliated with or endorsed by USPS or Pantone.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- reference data (USPS Publication 28) ---------- */
+
+  var STATES = {
+    "ALABAMA":"AL","ALASKA":"AK","ARIZONA":"AZ","ARKANSAS":"AR","CALIFORNIA":"CA",
+    "COLORADO":"CO","CONNECTICUT":"CT","DELAWARE":"DE","DISTRICT OF COLUMBIA":"DC",
+    "FLORIDA":"FL","GEORGIA":"GA","HAWAII":"HI","IDAHO":"ID","ILLINOIS":"IL",
+    "INDIANA":"IN","IOWA":"IA","KANSAS":"KS","KENTUCKY":"KY","LOUISIANA":"LA",
+    "MAINE":"ME","MARYLAND":"MD","MASSACHUSETTS":"MA","MICHIGAN":"MI","MINNESOTA":"MN",
+    "MISSISSIPPI":"MS","MISSOURI":"MO","MONTANA":"MT","NEBRASKA":"NE","NEVADA":"NV",
+    "NEW HAMPSHIRE":"NH","NEW JERSEY":"NJ","NEW MEXICO":"NM","NEW YORK":"NY",
+    "NORTH CAROLINA":"NC","NORTH DAKOTA":"ND","OHIO":"OH","OKLAHOMA":"OK","OREGON":"OR",
+    "PENNSYLVANIA":"PA","RHODE ISLAND":"RI","SOUTH CAROLINA":"SC","SOUTH DAKOTA":"SD",
+    "TENNESSEE":"TN","TEXAS":"TX","UTAH":"UT","VERMONT":"VT","VIRGINIA":"VA",
+    "WASHINGTON":"WA","WEST VIRGINIA":"WV","WISCONSIN":"WI","WYOMING":"WY",
+    "PUERTO RICO":"PR","GUAM":"GU","VIRGIN ISLANDS":"VI","AMERICAN SAMOA":"AS",
+    "NORTHERN MARIANA ISLANDS":"MP"
+  };
+  var VALID_STATE_ABBR = {};
+  Object.keys(STATES).forEach(function(k){ VALID_STATE_ABBR[STATES[k]] = true; });
+  ["AA","AE","AP"].forEach(function(a){ VALID_STATE_ABBR[a] = true; }); // military
+
+  var SUFFIXES = {
+    "ALLEY":"ALY","ANNEX":"ANX","ARCADE":"ARC","AVENUE":"AVE","BAYOU":"BYU","BEACH":"BCH",
+    "BEND":"BND","BLUFF":"BLF","BOTTOM":"BTM","BOULEVARD":"BLVD","BRANCH":"BR","BRIDGE":"BRG",
+    "BROOK":"BRK","BURG":"BG","BYPASS":"BYP","CAMP":"CP","CANYON":"CYN","CAPE":"CPE",
+    "CAUSEWAY":"CSWY","CENTER":"CTR","CIRCLE":"CIR","CLIFF":"CLF","CLUB":"CLB","COMMON":"CMN",
+    "CORNER":"COR","COURSE":"CRSE","COURT":"CT","COVE":"CV","CREEK":"CRK","CRESCENT":"CRES",
+    "CROSSING":"XING","CURVE":"CURV","DALE":"DL","DAM":"DM","DIVIDE":"DV","DRIVE":"DR",
+    "ESTATE":"EST","ESTATES":"ESTS","EXPRESSWAY":"EXPY","EXTENSION":"EXT","FALLS":"FLS",
+    "FERRY":"FRY","FIELD":"FLD","FLAT":"FLT","FORD":"FRD","FOREST":"FRST","FORGE":"FRG",
+    "FORK":"FRK","FORT":"FT","FREEWAY":"FWY","GARDEN":"GDN","GARDENS":"GDNS","GATEWAY":"GTWY",
+    "GLEN":"GLN","GREEN":"GRN","GROVE":"GRV","HARBOR":"HBR","HAVEN":"HVN","HEIGHTS":"HTS",
+    "HIGHWAY":"HWY","HILL":"HL","HILLS":"HLS","HOLLOW":"HOLW","INLET":"INLT","ISLAND":"IS",
+    "ISLANDS":"ISS","JUNCTION":"JCT","KEY":"KY","KNOLL":"KNL","LAKE":"LK","LAKES":"LKS",
+    "LANDING":"LNDG","LANE":"LN","LIGHT":"LGT","LOAF":"LF","LOCK":"LCK","LODGE":"LDG",
+    "MALL":"MALL","MANOR":"MNR","MEADOW":"MDW","MEADOWS":"MDWS","MILL":"ML","MILLS":"MLS",
+    "MISSION":"MSN","MOUNT":"MT","MOUNTAIN":"MTN","NECK":"NCK","ORCHARD":"ORCH","OVAL":"OVAL",
+    "PARK":"PARK","PARKWAY":"PKWY","PASS":"PASS","PATH":"PATH","PIKE":"PIKE","PINE":"PNE",
+    "PINES":"PNES","PLACE":"PL","PLAIN":"PLN","PLAZA":"PLZ","POINT":"PT","PORT":"PRT",
+    "PRAIRIE":"PR","RADIAL":"RADL","RAMP":"RAMP","RANCH":"RNCH","RAPID":"RPD","RAPIDS":"RPDS",
+    "REST":"RST","RIDGE":"RDG","RIVER":"RIV","ROAD":"RD","ROUTE":"RTE","ROW":"ROW","RUN":"RUN",
+    "SHOAL":"SHL","SHORE":"SHR","SKYWAY":"SKWY","SPRING":"SPG","SPRINGS":"SPGS","SPUR":"SPUR",
+    "SQUARE":"SQ","STATION":"STA","STRAVENUE":"STRA","STREAM":"STRM","STREET":"ST",
+    "SUMMIT":"SMT","TERRACE":"TER","TRACE":"TRCE","TRACK":"TRAK","TRAFFICWAY":"TRFY",
+    "TRAIL":"TRL","TUNNEL":"TUNL","TURNPIKE":"TPKE","UNION":"UN","VALLEY":"VLY","VIADUCT":"VIA",
+    "VIEW":"VW","VILLAGE":"VLG","VILLE":"VL","VISTA":"VIS","WALK":"WALK","WALL":"WALL",
+    "WAY":"WAY","WELL":"WL","WELLS":"WLS"
+  };
+
+  var DIRECTIONALS = {
+    "NORTH":"N","SOUTH":"S","EAST":"E","WEST":"W",
+    "NORTHEAST":"NE","NORTHWEST":"NW","SOUTHEAST":"SE","SOUTHWEST":"SW"
+  };
+
+  var UNIT_WORDS = {
+    "APARTMENT":"APT","APT":"APT","BUILDING":"BLDG","BLDG":"BLDG","BASEMENT":"BSMT",
+    "DEPARTMENT":"DEPT","FLOOR":"FL","FL":"FL","FRONT":"FRNT","HANGAR":"HNGR","LOBBY":"LBBY",
+    "LOT":"LOT","LOWER":"LOWR","OFFICE":"OFC","PENTHOUSE":"PH","PIER":"PIER","REAR":"REAR",
+    "ROOM":"RM","RM":"RM","SIDE":"SIDE","SLIP":"SLIP","SPACE":"SPC","STOP":"STOP",
+    "SUITE":"STE","STE":"STE","TRAILER":"TRLR","UNIT":"UNIT","UPPER":"UPPR","#":"UNIT"
+  };
+
+  /* ---------- helpers ---------- */
+
+  function stripPunct(s){
+    // Remove punctuation but keep hyphens (needed for ZIP+4) and alphanumerics/spaces
+    return s.replace(/[.,]/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  function titleWordsUpper(s){
+    return stripPunct(s).toUpperCase();
+  }
+
+  function standardizeStreet(raw){
+    if(!raw) return "";
+    var cleaned = stripPunct(raw).toUpperCase();
+    var words = cleaned.split(" ").filter(Boolean);
+    words = words.map(function(w){
+      var bare = w.replace(/[^A-Z]/g, "");
+      if(DIRECTIONALS[bare]) return DIRECTIONALS[bare];
+      if(SUFFIXES[bare]) return SUFFIXES[bare];
+      return w;
+    });
+    return words.join(" ");
+  }
+
+  function standardizeUnit(raw){
+    if(!raw) return "";
+    var cleaned = stripPunct(raw).toUpperCase().replace(/^#\s*/, "# ");
+    var parts = cleaned.split(" ").filter(Boolean);
+    if(parts.length === 0) return "";
+    var first = parts[0];
+    var rest = parts.slice(1).join(" ");
+    if(UNIT_WORDS[first]){
+      return (UNIT_WORDS[first] + (rest ? " " + rest : "")).trim();
+    }
+    // no recognized designator word — check if it's just "# 4" or a bare number
+    if(first === "#"){
+      return ("UNIT " + rest).trim();
+    }
+    // if it's just a bare token like "2B" with no designator, default to UNIT
+    if(parts.length === 1 && /^[0-9A-Z-]+$/.test(first)){
+      return "UNIT " + first;
+    }
+    return cleaned;
+  }
+
+  function standardizeState(raw){
+    if(!raw) return "";
+    var cleaned = stripPunct(raw).toUpperCase();
+    if(VALID_STATE_ABBR[cleaned]) return cleaned;
+    if(STATES[cleaned]) return STATES[cleaned];
+    return cleaned;
+  }
+
+  function cleanZip(raw){
+    if(!raw) return "";
+    var digits = raw.replace(/[^0-9-]/g, "");
+    return digits;
+  }
+
+  /* ---------- parsing free text into fields ---------- */
+
+  // Given a chunk like "316 W 108th St Apt 4C New York" (street + city with
+  // no comma between them), split off the trailing city name by finding the
+  // last unit marker (APT/UNIT/#...) or, failing that, the last recognized
+  // street-suffix word, and treating everything after it as the city.
+  function splitTrailingCity(text){
+    var unitRe = /\b(apt|apartment|unit|ste|suite|bldg|building|rm|room|fl|floor|#)\.?\s*[\w-]+/gi;
+    var lastUnitEnd = -1, m;
+    while((m = unitRe.exec(text)) !== null){ lastUnitEnd = m.index + m[0].length; }
+
+    var suffixSet = {};
+    Object.keys(SUFFIXES).forEach(function(k){ suffixSet[k] = 1; suffixSet[SUFFIXES[k]] = 1; });
+
+    var lastSuffixEnd = -1;
+    var wordRe = /\S+/g;
+    var wm;
+    while((wm = wordRe.exec(text)) !== null){
+      var bare = wm[0].replace(/[^A-Za-z]/g, "").toUpperCase();
+      if(suffixSet[bare]) lastSuffixEnd = wm.index + wm[0].length;
+    }
+
+    var splitPoint = Math.max(lastUnitEnd, lastSuffixEnd);
+    if(splitPoint === -1){
+      return { city: "", rest: text };
+    }
+    return { city: text.slice(splitPoint).trim(), rest: text.slice(0, splitPoint).trim() };
+  }
+
+  function parseAddress(text){
+    var lines = text.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+    var result = { name:"", company:"", street:"", unit:"", city:"", state:"", zip:"" };
+    if(lines.length === 0) return result;
+
+    // If everything is on one line, try splitting by commas first
+    if(lines.length === 1 && lines[0].indexOf(",") !== -1){
+      lines = lines[0].split(",").map(function(l){ return l.trim(); }).filter(Boolean);
+    }
+
+    var flat = lines.join(", ");
+
+    // Find rightmost ZIP
+    var zipMatch = null;
+    var zipRe = /(\d{5}(?:-\d{4})?)/g;
+    var m;
+    while((m = zipRe.exec(flat)) !== null){ zipMatch = m; }
+
+    var beforeZip = flat;
+    if(zipMatch){
+      result.zip = zipMatch[1];
+      beforeZip = flat.slice(0, zipMatch.index);
+    }
+    beforeZip = beforeZip.replace(/,\s*$/, "").trim();
+
+    // Find the state token at the very end of beforeZip (handles both
+    // "...Allentown, PA" and "...new york new york" with no comma).
+    var stateFound = "";
+    var cityAndAbove = beforeZip; // everything before the detected state token
+
+    var abbrevMatch = beforeZip.match(/\b([A-Za-z]{2})\s*$/);
+    if(abbrevMatch && VALID_STATE_ABBR[abbrevMatch[1].toUpperCase()]){
+      stateFound = abbrevMatch[1].toUpperCase();
+      cityAndAbove = beforeZip.slice(0, abbrevMatch.index).replace(/,\s*$/, "").trim();
+    } else {
+      var upperFlat = beforeZip.toUpperCase();
+      var foundStateName = "";
+      Object.keys(STATES).forEach(function(name){
+        if(upperFlat.slice(-name.length) === name && name.length > foundStateName.length){
+          foundStateName = name;
+        }
+      });
+      if(foundStateName){
+        stateFound = STATES[foundStateName];
+        cityAndAbove = beforeZip.slice(0, beforeZip.length - foundStateName.length).replace(/,\s*$/, "").trim();
+      }
+    }
+    result.state = stateFound;
+
+    // The last comma-segment of what's left is the city; everything before
+    // that comma-segment is name / company / street.
+    var segments = cityAndAbove.split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+    if(segments.length > 1){
+      result.city = titleWordsUpper(segments[segments.length - 1]);
+      segments.pop();
+    } else if(segments.length === 1){
+      // No comma separates the city from the street/unit before it (e.g.
+      // "316 W 108th St Apt 4C New York"). Split after the last unit
+      // marker or street-suffix word instead, since city comes after both.
+      var split = splitTrailingCity(segments[0]);
+      result.city = titleWordsUpper(split.city);
+      segments[0] = split.rest;
+      if(!segments[0]) segments.pop();
+    }
+
+    // Remaining segments = name / company / street lines
+    var remaining = segments.filter(Boolean);
+
+    // Detect a standalone unit line among remaining (e.g. "Apt 4B" / "Unit 2" / "#4")
+    var unitLineIdx = -1;
+    remaining.forEach(function(seg, i){
+      if(/^(apt|apartment|unit|ste|suite|#|bldg|building|rm|room|fl|floor)\b/i.test(seg.trim())){
+        unitLineIdx = i;
+      }
+    });
+    if(unitLineIdx !== -1){
+      result.unit = remaining[unitLineIdx];
+      remaining.splice(unitLineIdx, 1);
+    }
+
+    // Identify the street line: the one that starts with a number (most reliable signal),
+    // or contains a recognized street suffix
+    var streetIdx = -1;
+    remaining.forEach(function(seg, i){
+      if(streetIdx === -1 && /^\d/.test(seg.trim())) streetIdx = i;
+    });
+    if(streetIdx === -1){
+      remaining.forEach(function(seg, i){
+        if(streetIdx === -1){
+          var lastWord = seg.trim().split(/\s+/).pop().replace(/[^A-Za-z]/g,"").toUpperCase();
+          if(SUFFIXES[lastWord]) streetIdx = i;
+        }
+      });
+    }
+    if(streetIdx === -1 && remaining.length){
+      // fall back: assume the last remaining line is the street
+      streetIdx = remaining.length - 1;
+    }
+
+    if(streetIdx !== -1){
+      result.street = remaining[streetIdx];
+      // try to split off a trailing unit chunk embedded in the street line itself
+      var embeddedUnit = result.street.match(/[,]?\s*(apt|apartment|unit|ste|suite|#|bldg|rm|room|fl|floor)\.?\s*#?\s*[\w-]+$/i);
+      if(embeddedUnit && !result.unit){
+        result.unit = embeddedUnit[0].replace(/^,/, "").trim();
+        result.street = result.street.slice(0, embeddedUnit.index).replace(/,\s*$/,"").trim();
+      }
+      remaining.splice(streetIdx, 1);
+    }
+
+    // What's left (0-2 lines) = name, then company
+    if(remaining.length === 1){
+      result.name = remaining[0];
+    } else if(remaining.length >= 2){
+      result.name = remaining[0];
+      result.company = remaining.slice(1).join(", ");
+    }
+
+    // Title-case-ish cleanup for name/company (keep as typed, just trim)
+    result.name = result.name.trim();
+    result.company = result.company.trim();
+    result.street = result.street.trim();
+    result.unit = result.unit.trim();
+
+    return result;
+  }
+
+  /* ---------- build formatted output + detect issues ---------- */
+
+  function buildFormatted(f){
+    var street = standardizeStreet(f.street);
+    var unit = standardizeUnit(f.unit);
+    var deliveryLine = street;
+    if(unit){
+      // combine on one line, USPS-preferred when it fits
+      deliveryLine = street ? (street + " " + unit) : unit;
+    }
+
+    var city = titleWordsUpper(f.city);
+    var state = standardizeState(f.state);
+    var zip = cleanZip(f.zip);
+
+    var lastLine = "";
+    if(city || state || zip){
+      lastLine = city;
+      if(state) lastLine += (lastLine ? " " : "") + state;
+      if(zip) lastLine += (lastLine ? "  " : "") + zip; // two spaces before ZIP per USPS guideline
+    }
+
+    var lines = [];
+    if(f.name.trim()) lines.push(titleWordsUpper(f.name));
+    if(f.company.trim()) lines.push(titleWordsUpper(f.company));
+    if(deliveryLine) lines.push(deliveryLine);
+    if(lastLine) lines.push(lastLine);
+
+    var issues = [];
+    if(!street) issues.push("No street address detected");
+    if(!city) issues.push("City is missing");
+    if(!state) issues.push("State is missing or unrecognized");
+    if(!zip) issues.push("ZIP code is missing");
+    else if(!/^\d{5}(-\d{4})?$/.test(zip)) issues.push("ZIP code doesn't look like 5 digits (or ZIP+4)");
+    if(state && !VALID_STATE_ABBR[state]) issues.push("\u201C" + f.state + "\u201D doesn't match a recognized state");
+
+    return { text: lines.join("\n"), issues: issues, fields: { street:street, unit:unit, city:city, state:state, zip:zip, name:f.name, company:f.company } };
+  }
+
+  function buildDraftMessage(f, issues){
+    var addrPreview = buildFormatted(f).text;
+    var asks = issues.map(function(i){ return "- " + i.replace(/\.$/, ""); }).join("\n");
+    return "Hey! Can you confirm your address?\n\n" + addrPreview + "\n\nStill need:\n" + asks;
+  }
+
+  /* ---------- wire up UI ---------- */
+
+  var rawInput = document.getElementById("rawInput");
+  var parseBtn = document.getElementById("parseBtn");
+  var clearBtn = document.getElementById("clearBtn");
+  var fieldsSection = document.getElementById("fieldsSection");
+  var formatBtn = document.getElementById("formatBtn");
+  var resultSection = document.getElementById("resultSection");
+  var draftSection = document.getElementById("draftSection");
+  var addrOutput = document.getElementById("addrOutput");
+  var statusLine = document.getElementById("statusLine");
+  var issuesList = document.getElementById("issuesList");
+  var draftText = document.getElementById("draftText");
+  var copyAddrBtn = document.getElementById("copyAddrBtn");
+  var copyDraftBtn = document.getElementById("copyDraftBtn");
+
+  var fName = document.getElementById("fName");
+  var fCompany = document.getElementById("fCompany");
+  var fStreet = document.getElementById("fStreet");
+  var fUnit = document.getElementById("fUnit");
+  var fCity = document.getElementById("fCity");
+  var fState = document.getElementById("fState");
+  var fZip = document.getElementById("fZip");
+
+  function getFieldValues(){
+    return {
+      name: fName.value, company: fCompany.value, street: fStreet.value,
+      unit: fUnit.value, city: fCity.value, state: fState.value, zip: fZip.value
+    };
+  }
+
+  parseBtn.addEventListener("click", function(){
+    var text = rawInput.value;
+    if(!text.trim()) return;
+    var parsed = parseAddress(text);
+    fName.value = parsed.name;
+    fCompany.value = parsed.company;
+    fStreet.value = parsed.street;
+    fUnit.value = parsed.unit;
+    fCity.value = parsed.city;
+    fState.value = parsed.state;
+    fZip.value = parsed.zip;
+    fieldsSection.classList.remove("hidden");
+    resultSection.classList.add("hidden");
+    draftSection.classList.add("hidden");
+    fieldsSection.scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+
+  clearBtn.addEventListener("click", function(){
+    rawInput.value = "";
+    [fName,fCompany,fStreet,fUnit,fCity,fState,fZip].forEach(function(el){ el.value = ""; });
+    fieldsSection.classList.add("hidden");
+    resultSection.classList.add("hidden");
+    draftSection.classList.add("hidden");
+    rawInput.focus();
+  });
+
+  formatBtn.addEventListener("click", function(){
+    var f = getFieldValues();
+    var built = buildFormatted(f);
+
+    addrOutput.textContent = built.text || "(nothing to format yet)";
+
+    if(built.issues.length === 0){
+      statusLine.className = "status ok";
+      statusLine.innerHTML = '<span class="mark">\u2713</span> Looks complete';
+      issuesList.classList.add("hidden");
+    } else {
+      statusLine.className = "status warn";
+      statusLine.innerHTML = '<span class="mark">!</span> ' + built.issues.length + " thing" + (built.issues.length > 1 ? "s" : "") + " to check";
+      issuesList.innerHTML = built.issues.map(function(i){ return "<li>" + i + "</li>"; }).join("");
+      issuesList.classList.remove("hidden");
+    }
+
+    resultSection.classList.remove("hidden");
+
+    if(built.issues.length === 0){
+      draftSection.classList.add("hidden");
+    } else {
+      draftText.value = buildDraftMessage(f, built.issues);
+      draftSection.classList.remove("hidden");
+      draftText.style.height = "auto";
+      draftText.style.height = draftText.scrollHeight + "px";
+    }
+
+    resultSection.scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+
+  function copyToClipboard(text, btn){
+    function done(ok){
+      var original = btn.textContent;
+      btn.textContent = ok ? "Copied" : "Couldn't copy";
+      if(ok) btn.classList.add("copied");
+      setTimeout(function(){
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1500);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      try{
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        done(true);
+      }catch(e){ done(false); }
+    }
+  }
+
+  copyAddrBtn.addEventListener("click", function(){
+    copyToClipboard(addrOutput.textContent, copyAddrBtn);
+  });
+  copyDraftBtn.addEventListener("click", function(){
+    copyToClipboard(draftText.value, copyDraftBtn);
+  });
+
+})();
+</script>
+</body>
+</html>
