@@ -1,7 +1,7 @@
 # homing-pigeon
 A simple tool that takes any misshapen address and reformats it to USPS delivery address standards. The name is inspired by homing pigeons who always find their way to the right address.
 
-# Homing Pigeon
+## Overview
 https://AnushkaKulkarni.github.io/homing-pigeon/
 
 A simple tool that takes any misshapen address and reformats it to [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress) (all caps, no punctuation, standard abbreviations, correct spacing). If something looks missing — a ZIP code, an apartment number — it drafts a follow-up text you can send back to ask for it.  
