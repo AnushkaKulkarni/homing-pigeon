@@ -4,9 +4,9 @@ A tool that takes any misshapen address and reformats it to USPS delivery addres
 # Homing Pigeon
 https://AnushkaKulkarni.github.io/homing-pigeon/
 
-A tool that takes any misshapen address and reformats it to [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress) (all caps, no punctuation, standard abbreviations, correct spacing). If something looks missing — a ZIP code, an apartment number — it drafts a follow-up text you can send back to ask for it.  My most common use case for this tool is reformatting addresses which my friends send me over text, since they often span different syntatic styles. 
+A simple tool that takes any misshapen address and reformats it to [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress) (all caps, no punctuation, standard abbreviations, correct spacing). If something looks missing — a ZIP code, an apartment number — it drafts a follow-up text you can send back to ask for it.  
 
-It's a single HTML file. No build step, no backend, no dependencies.
+My most common use case for this tool is reformatting addresses which my friends send me over text, since they often span different syntatic styles. Although the [USPS Address Element Correction (AEC)](https://postalpro.usps.com/address-quality/aec) does an incredible job correcting addresses, I become worried that my letters will not send correctly if I transcribe them as they are sent. With this tool, it is easy to paste any address without filling out independent text fields & there are no privacy concerns since nothing you type or paste is ever sent anywhere -- no server, no analytics, no storage.
 
 The name is inspired by homing pigeons, domestic pigeons who are used to send mail because find their way to the right address.
 
