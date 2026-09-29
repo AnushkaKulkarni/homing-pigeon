@@ -33,14 +33,12 @@ The palette is the seven-color set that USPS and the Pantone Color Institute cre
 | USPS Gold Seal | `#C58C2F` |
 | USPS Pony Express | `#5F443D` | 
 
-Sources: 
-- [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress).
-- [USPS Link, "These colors paint the history of USPS"](https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/) and [Pantone x USPS](https://www.pantone.com/usps250). The hex values were sampled from the swatches on the Pantone page.
-- Built with help from Claude Code (Anthropic).
-
 Caveats: 
 - USPS's article says these colors were created for marketing purposes to mark the anniversary. This is an independent project and isn't affiliated with or endorsed by USPS or Pantone.
 - This tool formats addresses; it does not validate that they're real, deliverable, or CASS-certified — USPS's own [ZIP Code Lookup](https://tools.usps.com/zip-code-lookup.htm) is the source of truth for that.
 
-
+Sources: 
+- [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress).
+- [USPS Link, "These colors paint the history of USPS"](https://news.usps.com/2025/08/26/these-colors-paint-the-history-of-usps/) and [Pantone x USPS](https://www.pantone.com/usps250). The hex values were sampled from the swatches on the Pantone page.
+- Built with help from Claude Code (Anthropic).
 
