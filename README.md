@@ -2,7 +2,6 @@
 A simple tool that takes any misshapen address and reformats it to USPS delivery address standards. The name is inspired by homing pigeons who always find their way to the right address.
 
 ## Overview
-https://AnushkaKulkarni.github.io/homing-pigeon/
 
 A simple tool that takes any misshapen address and reformats it to [USPS delivery address standards](https://pe.usps.com/businessmail101?ViewName=DeliveryAddress) (all caps, no punctuation, standard abbreviations, correct spacing). If something looks missing — a ZIP code, an apartment number — it drafts a follow-up text you can send back to ask for it.  
 
@@ -11,6 +10,8 @@ My most common use case for this tool is reformatting addresses which my friends
 The name is inspired by homing pigeons, domestic pigeons who are used to send mail because find their way to the right address.
 
 ## Using it
+
+https://AnushkaKulkarni.github.io/homing-pigeon/
 
 1. Paste the address text into the box and click **Read address**.
 2. It'll guess at name / company / street / unit / city / state / ZIP and drop them into editable fields — check them, since parsing free-form text is never perfect (a name with a street-suffix-sounding word in it, for instance, can trip it up).
